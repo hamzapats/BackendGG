@@ -1,16 +1,3 @@
-// require("dotenv").config({path: "./config/.env"});
-// import dotenv from "dotenv";
-
-// import connectDB from "./db/db.js";
-
-
-
-// console.log("MONGODB_URI ->", process.env.MONGODB_URI);
-
-// dotenv.config({path: "./config/.env"});
-// connectDB();
-
-
 /*
 import express from "express";
 const app = express();
@@ -47,8 +34,6 @@ const app = express();
 dotenv.config();
 
 app.use(express.json());
-
-
 
 app.listen(process.env.PORT, async () => {
   console.log(`App is running on port ${process.env.PORT}`);
