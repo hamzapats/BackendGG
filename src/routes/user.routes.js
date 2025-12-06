@@ -1,10 +1,24 @@
 import { Router } from 'express';
 import { registerUser } from '../controllers/user.controller.js';
+import { upload } from '../middlewares/multer.js';
+
 
 const router = Router();
 
 // all of this is like suffix to the url
-router.route('/register').post(registerUser)
+router.route('/register').post(
+  upload.fields([ // middleware multer bolte
+    {
+      name: 'avatar',
+      maxCount: 1
+    },
+    {
+      name: 'coverImage',
+      maxCount: 1
+    }
+  ]),
+  registerUser
+)
 
 
 export default router;
