@@ -19,7 +19,6 @@ app.use(cookieParser())
 import userRouter from './routes/user.routes.js'; 
 
 
-
 // ROUTES DECLARATION:
 // all of this is like prefix to the url..followed by the suffix in individual route files
 // eg: http://localhost:8000/api/v1/users/register,login
