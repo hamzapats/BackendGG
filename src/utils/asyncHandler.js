@@ -4,9 +4,7 @@ const asyncHandler = (requestHandler) => {
   }
 }
 
-
 export default asyncHandler;
-
 
 // this is a higher order function to handle async errors
 // const asyncHandler = () => {}
