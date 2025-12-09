@@ -246,6 +246,123 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
   // same way can be done for cover image too --> 2:12:12s
 });
 
+const getUserChannelProfile = asyncHandler(async (req,res) => {
+  const {username} = req.params
+  if(!username?.trim()){ throw new ApiError(400, "Username missing") }
+
+  const channel = await User.aggregate([ // aggregate pipeline or wot
+    { // these are like different stages to the aggregate fn.
+    $match: {
+      username: username.toLowerCase()
+    }
+    },
+    {
+    $lookup: {
+      from: "subscirptions", // Subscription tha, but db me (lower + plural)!!
+      localField:"_id",
+      foreignField: "channel",
+      as: "subscribers"
+    }
+    },
+    {
+    $lookup: {
+      from: "subscirptions",
+      localField:"_id",
+      foreignField: "subscriber",
+      as: "subscribedTo" // refer to Subscription Schema from copy!! 
+    }
+    },
+    { // now original user, adding extra fields...
+    $addFields: {
+      subscribersCount: {
+        $size: "$subscribers" // "$" as now these are separate fields
+      },
+      channelsSubscribedToCount: {
+        $size: "$subscribedTo"
+      },
+      isSubscribed: {
+        $cond: {
+          if: {$in: [req.user?._id, "$subscribers.subscriber"]},
+          then: true,
+          else: false
+        }
+      }
+    }
+    },
+    { // this is like a left-join btw the two models
+    $project: {
+      fullName: 1,
+      username: 1,
+      email: 1,
+      channelsSubscribedToCount: 1,
+      subscribersCount: 1,
+      isSubscribed:1,
+      avatar: 1,
+      coverImage: 1
+    }
+    }
+  ])
+
+  if(!channel?.length){ throw new ApiError(404, "Channel doesnt exists") }
+
+  return res
+  .status(200)
+  .json(new ApiResponse(200, channel[0], "User channel fetched successfully"))
+
+});
+
+const getWatchHistory = asyncHandler(async (req,res) => {
+  const user = await User.aggregate([
+    {
+      $match: { // check copy for reference
+        _id: new mongoose.Types.ObjectId(req.user._id)        
+      }
+    },
+    {
+      $lookup:{
+        from: "videos", // coz there we exported Video -> so, videos!!
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    fullName: 1,
+                    username: 1,
+                    avatar: 1
+                  }
+                }
+              ]
+            }
+          },
+          //till now this will return an object of the owner, but for more
+          //efficiency, lets replace the owner feild with the owner itself
+          {
+            $addFields: {
+              owner: {
+                $first: "$owner"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ])
+
+  return res
+  .status(200)
+  .json(new ApiResponse(200, user[0].watchHistory, "Watch history fetched successfully"))
+
+});
+
+
 export { 
   registerUser, 
   loginUser, 
@@ -254,5 +371,7 @@ export {
   changeCurrentPassword,
   getCurrentUser,
   updateAccountDetails,
-  updateUserAvatar
+  updateUserAvatar,
+  getUserChannelProfile,
+  getWatchHistory
 };
