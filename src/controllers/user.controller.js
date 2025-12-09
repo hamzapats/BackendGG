@@ -184,4 +184,75 @@ const refreshAcessToken = asyncHandler(async (req, res) => {
 
 });
 
-export { registerUser, loginUser, logoutUser, refreshAcessToken };
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  // pass changing mtlb, user is already logged in, so..
+  const user = await User.findById(req.user?._id);
+  
+  const isPasswordValid = await user.isPasswordCorrect(oldPassword);
+  if (!isPasswordValid) { throw new ApiError(400, "Old password is incorrect"); }
+
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
+
+  return res
+  .status(200)
+  .json(new ApiResponse(200, {}, "Password changed successfully"));
+});
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return res
+  .status(200)
+  .json(new ApiResponse(200, req.user, "Current user fetched successfully"));
+});
+
+const updateAccountDetails = asyncHandler(async (req, res) => {
+  const { fullName, email } = req.body;
+  if(!fullName && !email){ throw new ApiError(400, "All fields required"); }
+
+  const user = await User.findByIdAndUpdate(
+  req.user?._id, 
+  {
+    $set: {
+      fullName,
+      email: email,
+    }
+  }, 
+  { new: true } // by this, we get the updated user back
+  ).select("-password");
+
+  return res
+  .status(200)
+  .json(new ApiResponse(200, user, "User details updated successfully"));
+});
+
+// While updating files, try using separate funcs and routes
+const updateUserAvatar = asyncHandler(async (req, res) => {
+  const avatarLocalPath = req.file?.path;
+  if(!avatarLocalPath){ throw new ApiError(400, "Avatar file is required"); }
+  
+  const avatar = await uploadOnCloudinary(avatarLocalPath);
+  if(!avatar.url){ throw new ApiError(500, "Avatar upload failed"); }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    { $set: { avatar: avatar.url } },
+    { new: true }
+  ).select("-password");
+
+  return res
+  .status(200)
+  .json(new ApiResponse(200, user, "Avatar updated successfully"));
+  // same way can be done for cover image too --> 2:12:12s
+});
+
+export { 
+  registerUser, 
+  loginUser, 
+  logoutUser, 
+  refreshAcessToken,
+  changeCurrentPassword,
+  getCurrentUser,
+  updateAccountDetails,
+  updateUserAvatar
+};
